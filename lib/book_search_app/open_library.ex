@@ -1,8 +1,11 @@
 defmodule BookSearchApp.OpenLibrary do
+  @behaviour BookSearchApp.HttpClientBehaviour
+
   @base_url "https://openlibrary.org"
   @cover_url "https://covers.openlibrary.org/b/id"
 
-  def fetch_books(query) do
+  # Search without fetching description
+  def search_books(query) do
     with {:ok, %HTTPoison.Response{status_code: 200, body: response}} <-
            http_client().get("#{@base_url}/search.json", [], params: %{q: query}),
          {:ok, body} <- Jason.decode(response),
@@ -16,11 +19,28 @@ defmodule BookSearchApp.OpenLibrary do
       {:error, %HTTPoison.Error{reason: :timeout}} ->
         {:error, :timeout}
 
-      error ->
-        error
+      error -> error
     end
   end
 
+  # Fetch a specific book's description for detail view
+  def get_description(work_key) do
+    url = "#{@base_url}#{work_key}.json"
+
+    with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <-
+           http_client().get(url, [], []),
+         {:ok, parsed} <- Jason.decode(body) do
+      parse_description(parsed["description"])
+    else
+      _ -> nil
+    end
+  end
+
+  defp parse_description(%{"value" => value}), do: value
+  defp parse_description(desc) when is_binary(desc), do: desc
+  defp parse_description(_), do: nil
+
+  # Only metadata — no descriptions here
   defp process_books(books) do
     Enum.map(books, fn book ->
       %{
@@ -34,7 +54,7 @@ defmodule BookSearchApp.OpenLibrary do
     end)
   end
 
-  defp http_client(), do: Application.get_env(:book_search_app, :http_client)
+  defp http_client(), do: Application.fetch_env!(:book_search_app, :http_client)
   defp get_cover_url(%{"cover_i" => cover_id}), do: "#{@cover_url}/#{cover_id}-M.jpg"
   defp get_cover_url(_), do: nil
 end

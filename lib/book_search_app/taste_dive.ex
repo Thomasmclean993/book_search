@@ -3,10 +3,10 @@ defmodule BookSearchApp.TasteDive do
 
   def get_recommendations(query) do
     with {:ok, %HTTPoison.Response{status_code: 200, body: response}} <-
-           http_client().get("#{@base_url}", [],
-             params: %{q: query, type: "book", k: "1054422-Booksear-F7CD0EC5", info: 1, limit: 5}
+           http_client().get(@base_url, [],
+             params: %{q: query, type: "book", k: "1054422-Booksear-F7CD0EC5", info: 1, limit: 10}
            ),
-         {:ok, body} <- Jason.decode(response) |> IO.inspect(),
+         {:ok, body} <- Jason.decode(response),
          {:ok, processed_recs} <- process_recs(body["similar"]["results"]) do
       {:ok, processed_recs}
     else
@@ -23,16 +23,22 @@ defmodule BookSearchApp.TasteDive do
 
   defp process_recs(recs) do
     parsed_recs =
-      Enum.map(recs, fn recs ->
-        %{
-          name: recs["name"],
-          wiki_url: recs["wUrl"],
-          summary: recs["description"]
+      recs
+      |> Enum.map(fn rec ->
+       %{
+          name: rec["name"],
+          wiki_url: rec["wUrl"],
+          summary: rec["description"]
         }
       end)
+      # Filter out books with no summary
+      |> Enum.reject(fn rec ->
+        is_nil(rec.summary) or String.trim(rec.summary) == ""
+      end)
 
-    {:ok, parsed_recs}
+      {:ok, parsed_recs}
   end
 
   defp http_client(), do: Application.get_env(:book_search_app, :http_client)
 end
+

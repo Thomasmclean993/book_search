@@ -8,37 +8,34 @@ defmodule BookSearchApp.OpenLibraryTest do
 
   describe "search_books/1" do
     test "returns processed books for successful API response" do
-      json_response = """
-      {
-        "docs": [
-          {
-            "title": "Test Book",
-            "author_name": ["Test Author"],
-            "first_publish_year": 2020,
-            "cover_i": 123456,
-            "isbn": ["1234567890"]
-          }
-        ]
-      }
-      """
+      json = ~s({
+        "docs": [{
+          "title": "Test Book",
+          "author_name": ["Test Author"],
+          "first_publish_year": 2020,
+          "cover_i": 123456,
+          "isbn": ["1234567890"],
+          "key": "/works/OL123W"
+        }]
+      })
 
-      expect(HTTPoison.BaseMock, :get, fn url, _headers, params ->
+      expect(BookSearchApp.HttpClientMock, :get, fn url, _headers, opts ->
         assert url == "https://openlibrary.org/search.json"
-        assert params == [params: %{q: "test"}]
-        {:ok, %HTTPoison.Response{status_code: 200, body: json_response}}
+        assert opts == [params: %{q: "test"}]
+        {:ok, %HTTPoison.Response{status_code: 200, body: json}}
       end)
 
       assert {:ok, [book]} = OpenLibrary.search_books("test")
-
       assert book.title == "Test Book"
       assert book.authors == "Test Author"
       assert book.year == 2020
       assert book.isbn == ["1234567890"]
+      assert book.key == "/works/OL123W"
       assert book.cover_url == "https://covers.openlibrary.org/b/id/123456-M.jpg"
     end
 
-    test "returns error for API failure" do
-      expect(HTTPoison.BaseMock, :get, fn _, _, _ ->
+    test "returns error for API timeout" do
+      expect(BookSearchApp.HttpClientMock, :get, fn _, _, _ ->
         {:error, %HTTPoison.Error{reason: :timeout}}
       end)
 
@@ -46,7 +43,7 @@ defmodule BookSearchApp.OpenLibraryTest do
     end
 
     test "returns error for non-200 status code" do
-      expect(HTTPoison.BaseMock, :get, fn _, _, _ ->
+      expect(BookSearchApp.HttpClientMock, :get, fn _, _, _ ->
         {:ok, %HTTPoison.Response{status_code: 500, body: ""}}
       end)
 
@@ -54,15 +51,15 @@ defmodule BookSearchApp.OpenLibraryTest do
     end
 
     test "handles malformed JSON response" do
-      expect(HTTPoison.BaseMock, :get, fn _, _, _ ->
-        {:ok, %HTTPoison.Response{status_code: 200, body: "invalid json"}}
+      expect(BookSearchApp.HttpClientMock, :get, fn _, _, _ ->
+        {:ok, %HTTPoison.Response{status_code: 200, body: "not-json"}}
       end)
 
       assert {:error, %Jason.DecodeError{}} = OpenLibrary.search_books("test")
     end
 
-    test "handles empty results gracefully" do
-      expect(HTTPoison.BaseMock, :get, fn _, _, _ ->
+    test "handles empty results" do
+      expect(BookSearchApp.HttpClientMock, :get, fn _, _, _ ->
         {:ok, %HTTPoison.Response{status_code: 200, body: "{\"docs\": []}"}}
       end)
 
@@ -70,25 +67,53 @@ defmodule BookSearchApp.OpenLibraryTest do
     end
   end
 
-  describe "find_book/1" do
-    test "Successfully retrieve a single book using the 'key' field from the index list" do
-      single_book =
-        %{
-          "title" => "Test Book",
-          "authors" => ["Test Author"],
-          "year" => 2020,
-          "cover_i" => 123_456,
-          "isbn" => ["1234567890"],
-          "cover_url" => "https.openlibrary.org/works/OL27448W.jpg"
-        }
+  describe "get_description/1" do
+    test "returns plain string description" do
+      json = ~s({"description": "Plain description"})
 
-      {:ok, response} = OpenLibrary.display_single_book(single_book)
+      expect(BookSearchApp.HttpClientMock, :get, fn url, _, _ ->
+        assert url == "https://openlibrary.org/works/OL1234W.json"
+        {:ok, %HTTPoison.Response{status_code: 200, body: json}}
+      end)
 
-      assert response["title"] == "Test Book"
-      assert response["authors"] == ["Test Author"]
-      assert response["year"] == 2020
-      assert response["isbn"] == ["1234567890"]
-      assert response["cover_url"] == "https.openlibrary.org/works/OL27448W.jpg"
+      assert OpenLibrary.get_description("/works/OL1234W") == "Plain description"
+    end
+
+    test "returns description from map" do
+      json = ~s({"description": {"value": "Mapped description"}})
+
+      expect(BookSearchApp.HttpClientMock, :get, fn _url, _, _ ->
+        {:ok, %HTTPoison.Response{status_code: 200, body: json}}
+      end)
+
+      assert OpenLibrary.get_description("/works/OL5678W") == "Mapped description"
+    end
+
+    test "returns nil if no description field" do
+      json = ~s({"title": "No description"})
+
+      expect(BookSearchApp.HttpClientMock, :get, fn _url, _, _ ->
+        {:ok, %HTTPoison.Response{status_code: 200, body: json}}
+      end)
+
+      assert OpenLibrary.get_description("/works/OL9999W") == nil
+    end
+
+    test "returns nil on HTTP error" do
+      expect(BookSearchApp.HttpClientMock, :get, fn _, _, _ ->
+        {:error, %HTTPoison.Error{reason: :timeout}}
+      end)
+
+      assert OpenLibrary.get_description("/works/OLFAIL") == nil
+    end
+
+    test "returns nil for non-200 status" do
+      expect(BookSearchApp.HttpClientMock, :get, fn _, _, _ ->
+        {:ok, %HTTPoison.Response{status_code: 404, body: "Not found"}}
+      end)
+
+      assert OpenLibrary.get_description("/works/OL404") == nil
     end
   end
 end
+
