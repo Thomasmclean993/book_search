@@ -1,5 +1,5 @@
 defmodule BookSearchApp.OpenLibrary do
-  @behaviour BookSearchApp.HttpClientBehaviour
+  # @behaviour BookSearchApp.HttpClientBehaviour
 
   @base_url "https://openlibrary.org"
   @cover_url "https://covers.openlibrary.org/b/id"
@@ -19,7 +19,8 @@ defmodule BookSearchApp.OpenLibrary do
       {:error, %HTTPoison.Error{reason: :timeout}} ->
         {:error, :timeout}
 
-      error -> error
+      error ->
+        error
     end
   end
 

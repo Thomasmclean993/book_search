@@ -18,8 +18,16 @@ defmodule BookSearchAppWeb.BookSearchLive do
   # Handles search form submit
   def handle_event("search", %{"query" => query}, socket) do
     send(self(), {:search_books, query})
+
     {:noreply,
-     assign(socket, loading: true, error: nil, query: query, books: [], selected_book: nil, recommendations: [])}
+     assign(socket,
+       loading: true,
+       error: nil,
+       query: query,
+       books: [],
+       selected_book: nil,
+       recommendations: []
+     )}
   end
 
   # Handles selection of a book from the search results
@@ -91,7 +99,7 @@ defmodule BookSearchAppWeb.BookSearchLive do
       <% end %>
 
       <%= if @error do %>
-        <div class="mt-4 text-red-600">Error: <%= inspect(@error) %></div>
+        <div class="mt-4 text-red-600">Error: {inspect(@error)}</div>
       <% end %>
 
       <%= if @selected_book do %>
@@ -102,11 +110,7 @@ defmodule BookSearchAppWeb.BookSearchLive do
           recommendations={@recommendations}
         />
       <% else %>
-        <.live_component
-          module={BookSearchAppWeb.BookListComponent}
-          id="book-list"
-          books={@books}
-        />
+        <.live_component module={BookSearchAppWeb.BookListComponent} id="book-list" books={@books} />
       <% end %>
     </div>
     """
