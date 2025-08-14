@@ -35,3 +35,6 @@ book_search_app-*.tar
 npm-debug.log
 /assets/node_modules/
 
+# dotenv files should be ignored
+.env
+
