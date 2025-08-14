@@ -25,7 +25,7 @@ defmodule BookSearchApp.TasteDive do
     parsed_recs =
       recs
       |> Enum.map(fn rec ->
-       %{
+        %{
           name: rec["name"],
           wiki_url: rec["wUrl"],
           summary: rec["description"]
@@ -36,9 +36,8 @@ defmodule BookSearchApp.TasteDive do
         is_nil(rec.summary) or String.trim(rec.summary) == ""
       end)
 
-      {:ok, parsed_recs}
+    {:ok, parsed_recs}
   end
 
   defp http_client(), do: Application.get_env(:book_search_app, :http_client)
 end
-

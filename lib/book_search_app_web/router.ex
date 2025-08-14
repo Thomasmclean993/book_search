@@ -17,8 +17,8 @@ defmodule BookSearchAppWeb.Router do
   scope "/", BookSearchAppWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
-    live "/books", BookSearchLive
+    # Rediect to books page
+    live "/", BookSearchLive
   end
 
   # Other scopes may use custom stacks.

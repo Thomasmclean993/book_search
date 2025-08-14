@@ -1,6 +1,3 @@
-// See the Tailwind configuration guide for advanced usage
-// https://tailwindcss.com/docs/configuration
-
 const plugin = require("tailwindcss/plugin")
 const fs = require("fs")
 const path = require("path")
@@ -11,27 +8,27 @@ module.exports = {
     "../lib/book_search_app_web.ex",
     "../lib/book_search_app_web/**/*.*ex"
   ],
-  theme: {
-    extend: {
-      colors: {
-        brand: "#FD4F00",
-      }
-    },
-  },
+ theme: {
+  extend: {
+    colors: {
+      brand: "#3B82F6",        // Tailwind's blue-500
+      "brand-dark": "#1E3A8A", // Tailwind's blue-900
+      accent: "#8B5CF6",       // Tailwind's purple-500
+      "accent-dark": "#5B21B6" // Tailwind's purple-900
+      },
+    fontFamily: {
+      sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+      heading: ['Poppins', 'ui-sans-serif']
+    }
+    }
+  },  
   plugins: [
     require("@tailwindcss/forms"),
-    // Allows prefixing tailwind classes with LiveView classes to add rules
-    // only when LiveView classes are applied, for example:
-    //
-    //     <div class="phx-click-loading:animate-ping">
-    //
     plugin(({addVariant}) => addVariant("phx-click-loading", [".phx-click-loading&", ".phx-click-loading &"])),
     plugin(({addVariant}) => addVariant("phx-submit-loading", [".phx-submit-loading&", ".phx-submit-loading &"])),
     plugin(({addVariant}) => addVariant("phx-change-loading", [".phx-change-loading&", ".phx-change-loading &"])),
 
-    // Embeds Heroicons (https://heroicons.com) into your app.css bundle
-    // See your `CoreComponents.icon/1` for more information.
-    //
+    // Heroicons embed config
     plugin(function({matchComponents, theme}) {
       let iconsDir = path.join(__dirname, "../deps/heroicons/optimized")
       let values = {}

@@ -116,4 +116,3 @@ defmodule BookSearchApp.OpenLibraryTest do
     end
   end
 end
-
